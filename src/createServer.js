@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const { Op } = require('sequelize');
 const {
-  models: { User, Expense },
+  models: { User, Expense, Category },
 } = require('./models/models');
 
 const createServer = () => {
@@ -97,6 +97,90 @@ const createServer = () => {
     res.status(204).send();
   });
 
+  app.get('/categories', async (req, res) => {
+    const categories = await Category.findAll();
+
+    res.send(categories);
+  });
+
+  app.get('/categories/:categoryId', async (req, res) => {
+    const { categoryId } = req.params;
+
+    const category = await Category.findByPk(categoryId);
+
+    if (!category) {
+      res.status(404).send({ error: 'Category not found' });
+
+      return;
+    }
+
+    res.send(category);
+  });
+
+  app.post('/categories', async (req, res) => {
+    const { name } = req.body;
+
+    if (!name) {
+      res.status(400).send({ error: 'Name is required' });
+
+      return;
+    }
+
+    const category = await Category.create({ name });
+
+    res.status(201).send(category);
+  });
+
+  app.patch('/categories/:categoryId', async (req, res) => {
+    const { categoryId } = req.params;
+    const { name } = req.body;
+
+    const category = await Category.findByPk(categoryId);
+
+    if (!category) {
+      res.status(404).send({ error: 'Category not found' });
+
+      return;
+    }
+
+    await category.update({ name });
+
+    res.send(category);
+  });
+
+  app.put('/categories/:categoryId', async (req, res) => {
+    const { categoryId } = req.params;
+    const { name } = req.body;
+
+    const category = await Category.findByPk(categoryId);
+
+    if (!category) {
+      res.status(404).send({ error: 'Category not found' });
+
+      return;
+    }
+
+    await category.update({ name });
+
+    res.send(category);
+  });
+
+  app.delete('/categories/:categoryId', async (req, res) => {
+    const { categoryId } = req.params;
+
+    const category = await Category.findByPk(categoryId);
+
+    if (!category) {
+      res.status(404).send({ error: 'Category not found' });
+
+      return;
+    }
+
+    await category.destroy();
+
+    res.status(204).send();
+  });
+
   app.get('/expenses', async (req, res) => {
     const { userId, from, to, categories } = req.query;
 
@@ -114,7 +198,7 @@ const createServer = () => {
     }
 
     if (categories) {
-      where.category = categories;
+      where.categoryId = categories;
     }
 
     const expenses = await Expense.findAll({ where });
@@ -137,7 +221,7 @@ const createServer = () => {
   });
 
   app.post('/expenses', async (req, res) => {
-    const { spentAt, title, amount, category, note, userId } = req.body;
+    const { spentAt, title, amount, categoryId, note, userId } = req.body;
 
     if (!spentAt || !title || !amount || !userId) {
       res.status(400).send({ error: 'Required fields are missing' });
@@ -157,7 +241,7 @@ const createServer = () => {
       spentAt,
       title,
       amount,
-      category,
+      categoryId,
       note,
       userId,
     });
